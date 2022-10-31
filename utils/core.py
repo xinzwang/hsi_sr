@@ -9,7 +9,6 @@ import torch
 import torch.nn as nn
 
 import models
-import configs
 
 class SRCore:
 	def __init__(self, batch_log=10):
@@ -24,8 +23,7 @@ class SRCore:
 		self.device=device
 
 	def build_model(self, name, channels=3, scale_factor=2):
-		self.cfg = getattr(configs, 'cfg'+name)(channels, channels, scale_factor)
-		self.model = getattr(models, name)(cfg=self.cfg).to(self.device)
+		self.model = getattr(models, name)(channels, scale_factor).to(self.device)
 
 	def inject_loss_fn(self, loss_fn):
 		self.loss_fn = loss_fn
@@ -97,117 +95,6 @@ class SRCore:
 
 			optimizer.zero_grad()
 			pred = model(lr)
-			loss = loss_fn(pred, hr)
-			loss.backward()
-			optimizer.module.step()
-
-			total_loss.append(loss.item())
-			if i % self.batch_log == 1:
-				logger.info('  batch:%d loss:%.5f' % (i, loss.item()))
-			pass
-		mean_loss = np.mean(total_loss)
-		scheduler.module.step(mean_loss)
-		return mean_loss
-
-	def save_ckpt(self, save_path, dataset):
-		torch.save({
-			'dataset': dataset,
-			'model': self.model
-		}, save_path)
-		return
-		
-
-
-class SRClusterCore:
-	def __init__(self, batch_log=10):
-		self.parallel = False
-		self.batch_log = batch_log
-		pass
-
-	def inject_logger(self, logger):
-		self.logger = logger
-
-	def inject_device(self, device):
-		self.device=device
-
-	def build_model(self, name, channels=3, scale_factor=2, n_clusters=9):
-		self.model = getattr(models, name)(
-			channels=channels, 
-			scale_factor=scale_factor,
-			n_clusters=n_clusters).to(self.device)
-
-	def inject_loss_fn(self, loss_fn):
-		self.loss_fn = loss_fn
-
-	def inject_optim(self, optimizer):
-		self.optimizer = optimizer
-
-	def inject_scheduler(self, scheduler):
-		self.scheduler = scheduler
-	
-	def parallel(self, device_ids=['cuda:0']):
-		if self.parallel==False:
-			self.model = nn.DataParallel(self.model, device_ids=device_ids)
-			self.optimizer = nn.DataParallel(self.optimizer, device_ids=args.device_ids)
-			self.scheduler = nn.DataParallel(self.scheduler, device_ids=args.device_ids)
-
-	def train(self, dataloader):
-		if self.parallel==True:
-			mean_loss = self.train_parallel(dataloader)
-		else:
-			mean_loss = self.train_single(dataloader)
-		return mean_loss
-
-	def train_single(self, dataloader):
-		logger = self.logger
-		device = self.device
-		model = self.model
-		loss_fn = self.loss_fn
-		optimizer = self.optimizer
-		scheduler = self.scheduler
-
-		total_loss = []
-		c_lr = optimizer.state_dict()['param_groups'][0]['lr']
-		logger.info('  lr:%f'%(c_lr))
-
-		for i, (lr, hr, cls_) in enumerate(tqdm(dataloader)):
-			lr = lr.to(device)
-			hr = hr.to(device)
-			cls_ = cls_.to(device)
-
-			optimizer.zero_grad()
-			pred = model((lr, cls_))
-			loss = loss_fn(pred, hr)
-			loss.backward()
-			optimizer.step()
-
-			total_loss.append(loss.item())
-			if i % self.batch_log == 1:
-				logger.info('  batch:%d loss:%.5f' % (i, loss.item()))
-			pass
-		mean_loss = np.mean(total_loss)
-		scheduler.step(mean_loss)
-		return mean_loss
-
-	def train_parallel(self, dataloader):
-		logger = self.logger
-		device = self.device
-		model = self.model
-		loss_fn = self.loss_fn
-		optimizer = self.optimizer
-		scheduler = self.scheduler
-
-		total_loss = []
-		c_lr = optimizer.module.state_dict()['param_groups'][0]['lr']
-		logger.info('  lr:%f'%(c_lr))
-
-		for i, (lr, hr, cls_) in enumerate(tqdm(dataloader)):
-			lr = lr.to(device)
-			hr = hr.to(device)
-			cls_ = cls_.to(device)
-
-			optimizer.zero_grad()
-			pred = model(lr, cls_)
 			loss = loss_fn(pred, hr)
 			loss.backward()
 			optimizer.module.step()
