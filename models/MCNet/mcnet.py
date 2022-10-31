@@ -135,9 +135,9 @@ class MCNet(nn.Module):
 				n_conv = 1
 				kernel_size = 3
 				
-			# 	band_mean = (0.0939, 0.0950, 0.0869, 0.0839, 0.0850, 0.0809, 0.0769, 0.0762, 0.0788, 0.0790, 0.0834, 
-			# 							 0.0894, 0.0944, 0.0956, 0.0939, 0.1187, 0.0903, 0.0928, 0.0985, 0.1046, 0.1121, 0.1194, 
-			# 							 0.1240, 0.1256, 0.1259, 0.1272, 0.1291, 0.1300, 0.1352, 0.1428, 0.1541) #CAVE
+				band_mean = (0.0939, 0.0950, 0.0869, 0.0839, 0.0850, 0.0809, 0.0769, 0.0762, 0.0788, 0.0790, 0.0834, 
+										 0.0894, 0.0944, 0.0956, 0.0939, 0.1187, 0.0903, 0.0928, 0.0985, 0.1046, 0.1121, 0.1194, 
+										 0.1240, 0.1256, 0.1259, 0.1272, 0.1291, 0.1300, 0.1352, 0.1428, 0.1541) #CAVE
 			#  band_mean = (0.0100, 0.0137, 0.0219, 0.0285, 0.0376, 0.0424, 0.0512, 0.0651, 0.0694, 0.0723, 0.0816,
 			# 							0.0950, 0.1338, 0.1525, 0.1217, 0.1187, 0.1337, 0.1481, 0.1601, 0.1817, 0.1752, 0.1445, 
 			# 							0.1450, 0.1378, 0.1343, 0.1328, 0.1303, 0.1299, 0.1456, 0.1433, 0.1303) #Hararvd 
@@ -154,7 +154,7 @@ class MCNet(nn.Module):
 			#  						 0.0650,	0.0671,	0.0687,	0.0693,	0.0687,	0.0688,	0.0677,	0.0689,	0.0736,	0.0735,	0.0728,	0.0713,	0.0734,
 			#  						 0.0726,	0.0722,	0.074,	0.0742,	0.0794,	0.0892,	0.1005) #Foster2002                
 				wn = lambda x: torch.nn.utils.weight_norm(x)
-				# self.band_mean = torch.autograd.Variable(torch.FloatTensor(band_mean)).view([1, n_colors, 1, 1])
+				self.band_mean = torch.autograd.Variable(torch.FloatTensor(band_mean)).view([1, n_colors, 1, 1])
 																		 
 				self.head = wn(nn.Conv3d(1, n_feats, kernel_size, padding=kernel_size//2))        
 							 
@@ -169,7 +169,7 @@ class MCNet(nn.Module):
 				self.tail = nn.Sequential(*tail)                                                                                 
 							 
 		def forward(self, x):
-				# x = x - self.band_mean.cuda()  
+				x = x - self.band_mean.to(x.device)
 				x = x.unsqueeze(1)
 				T = self.head(x) 
 				
@@ -188,5 +188,5 @@ class MCNet(nn.Module):
 																																										 
 				x = self.tail(x)      
 				x = x.squeeze(1)        
-				# x = x + self.band_mean.cuda()   
+				x = x + self.band_mean.to(x.device) 
 				return x
