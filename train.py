@@ -7,6 +7,7 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.backends.cudnn as cudnn
 
 from utils.logger import create_logger
 from utils.dataset import build_dataset
@@ -16,7 +17,7 @@ from utils.core import SRCore
 
 def parse_args():
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--dataset', default='Pavia', choices=['CAVE', 'Pavia', 'PaviaU', 'KSC', 'Indian'])
+	parser.add_argument('--dataset', default='CAVE', choices=['CAVE', 'Pavia', 'PaviaU', 'KSC', 'Indian'])
 	parser.add_argument('--scale_factor', default=2, type=int)
 	parser.add_argument('--batch_size', default=16)
 	parser.add_argument('--epoch', default=10001)
@@ -25,7 +26,7 @@ def parse_args():
 	parser.add_argument('--device', default='cuda:2')
 	parser.add_argument('--parallel', default=False)
 	parser.add_argument('--device_ids', default=['cuda:5', 'cuda:6', 'cuda:7'])
-	parser.add_argument('--model', default='GDRNN')
+	parser.add_argument('--model', default='SSPSR')
 	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/Pavia/sr/train_x420_y230_N256.npy')
 	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/Pavia/sr/test_x420_y230_N256.npy')
 	parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/CAVE/train.npy')
@@ -36,10 +37,10 @@ def parse_args():
 
 def train(args):
 	t = time.strftime('%Y-%m-%d_%H:%M:%S')
-	checkpoint_path = 'checkpoints/fusion_v2/%s/%s/' % (args.model, t)
+	checkpoint_path = 'checkpoints/%s/%s/%s/' % (args.dataset, args.model, t)
 	if not os.path.exists(checkpoint_path):
 		os.makedirs(checkpoint_path)
-	log_path = 'log/fusion_v2/%s/' %(args.model)
+	log_path = 'log/%s/%s/' %(args.dataset, args.model)
 	if not os.path.exists(log_path):
 		os.makedirs(log_path)
 	logger = create_logger(log_path + '%s.log'%(t))
@@ -49,6 +50,7 @@ def train(args):
 	set_seed(args.seed)
 
 	# device
+	cudnn.benchmark = True
 	device = torch.device(args.device if torch.cuda.is_available() else 'cpu')
 
 	# dataset

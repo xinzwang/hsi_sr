@@ -24,7 +24,11 @@ class SRCore:
 
 	def build_model(self, name, channels=3, scale_factor=2):
 		self.model = getattr(models, name)(channels, scale_factor).to(self.device)
+	
+	def build_loss(self):
+		self.loss_fn = getattr(self.model.loss_name, )
 
+		
 	def inject_loss_fn(self, loss_fn):
 		self.loss_fn = loss_fn
 
