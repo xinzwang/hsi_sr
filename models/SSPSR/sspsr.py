@@ -57,21 +57,22 @@ class BranchUnit(nn.Module):
 
 
 class SSPSR(nn.Module):
-		def __init__(self, cfg):
+		def __init__(self, channels, scale_factor):
 				super(SSPSR, self).__init__()
 
-				n_subs = cfg.n_subs
-				n_ovls = cfg.n_ovls
-				n_colors = cfg.n_colors
-				n_blocks = cfg.n_blocks
-				n_feats = cfg.n_feats
-				n_scale = cfg.n_scale
-				res_scale = cfg.res_scale
-				use_share = True
+				n_colors = channels
+				n_scale = scale_factor
+
+				n_subs = 8
+				n_ovls = 2
+				n_blocks = 3
+				n_feats = 256
+				res_scale = 0.1
 				conv = default_conv
 
 				kernel_size = 3
-				self.shared = use_share
+				self.shared = True
+				
 				act = nn.ReLU(True)
 
 				# calculate the group number (the number of branch networks)

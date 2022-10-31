@@ -1,30 +1,37 @@
 import torch.nn as nn
-from models import common
+from models.EDSR import common
 
 class EDSR(nn.Module):
-	def __init__(self, cfg, conv=common.default_conv):
+	def __init__(self, channels, scale_factor):
 				super(EDSR, self).__init__()
+				
+				n_colors = channels
+				scale = scale_factor
 
-				n_resblocks = cfg.n_resblocks
-				n_feats = cfg.n_feats
-				kernel_size = 3 
-				scale = cfg.scale
+				n_resblocks = 16
+				n_feats = 64
+				res_scale = 1
+				kernel_size = 3
+				
 				act = nn.ReLU(True)
+
+				conv=common.default_conv
+
 				# url_name = 'r{}f{}x{}'.format(n_resblocks, n_feats, scale)
 				# if url_name in url:
 				# 		self.url = url[url_name]
 				# else:
 				# 		self.url = None
-				# self.sub_mean = common.MeanShift(cfg.rgb_range)
-				# self.add_mean = common.MeanShift(cfg.rgb_range, sign=1)
+				# self.sub_mean = common.MeanShift(rgb_range)
+				# self.add_mean = common.MeanShift(rgb_range, sign=1)
 
 				# define head module
-				m_head = [conv(cfg.n_colors, n_feats, kernel_size)]
+				m_head = [conv(n_colors, n_feats, kernel_size)]
 
 				# define body module
 				m_body = [
 						common.ResBlock(
-								conv, n_feats, kernel_size, act=act, res_scale=cfg.res_scale
+								conv, n_feats, kernel_size, act=act, res_scale=res_scale
 						) for _ in range(n_resblocks)
 				]
 				m_body.append(conv(n_feats, n_feats, kernel_size))
@@ -32,7 +39,7 @@ class EDSR(nn.Module):
 				# define tail module
 				m_tail = [
 						common.Upsampler(conv, scale, n_feats, act=False),
-						conv(n_feats, cfg.n_colors, kernel_size)
+						conv(n_feats, n_colors, kernel_size)
 				]
 
 				self.head = nn.Sequential(*m_head)
