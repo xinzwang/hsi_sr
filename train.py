@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
+from torch.utils.tensorboard import SummaryWriter
 
 from utils.logger import create_logger
 from utils.dataset import build_dataset
@@ -17,7 +18,7 @@ from utils.core import SRCore
 
 def parse_args():
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--dataset', default='CAVE', choices=['CAVE', 'Pavia', 'PaviaU', 'KSC', 'Indian'])
+	parser.add_argument('--dataset', default='ICVL', choices=['ICVL', 'CAVE', 'Pavia', 'PaviaU', 'KSC', 'Indian'])
 	parser.add_argument('--scale_factor', default=2, type=int)
 	parser.add_argument('--batch_size', default=16)
 	parser.add_argument('--epoch', default=10001)
@@ -27,10 +28,16 @@ def parse_args():
 	parser.add_argument('--parallel', default=False)
 	parser.add_argument('--device_ids', default=['cuda:5', 'cuda:6', 'cuda:7'])
 	parser.add_argument('--model', default='SSPSR')
+	# Pavia
 	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/Pavia/sr/train_x420_y230_N256.npy')
 	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/Pavia/sr/test_x420_y230_N256.npy')
-	parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/CAVE/train.npy')
-	parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/CAVE/test.npy')
+	# CAVE
+	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/CAVE/train.npy')
+	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/CAVE/test.npy')
+	# ICVL
+	parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/ICVL/train/')
+	parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/ICVL/test/')
+
 	args = parser.parse_args()
 	print(args)
 	return args
@@ -45,6 +52,8 @@ def train(args):
 		os.makedirs(log_path)
 	logger = create_logger(log_path + '%s.log'%(t))
 	logger.info(str(args))
+
+	writer = SummaryWriter('tensorboard/%s/%s/%s/' % (args.dataset, args.model, t))
 
 	# set seed
 	set_seed(args.seed)
@@ -70,6 +79,7 @@ def train(args):
 	# core
 	core = SRCore(batch_log=10)
 	core.inject_logger(logger)
+	core.inject_writer(writer)
 	core.inject_device(device)
 	core.build_model(name=args.model, channels=dataset.channels, scale_factor=args.scale_factor)
 	
@@ -92,10 +102,15 @@ def train(args):
 		if epoch % 5 == 0:
 			psnr, ssim, sam, mse = test(core.model, test_dataloader, device=device)
 			logger.info('[TEST] epoch:%d psnr:%.5f ssim:%.5f sam:%.5f mse:%.5f' %(epoch, psnr, ssim, sam, mse))
+			writer.add_scalar(tag='score/PSNR', scalar_value=psnr, global_step=epoch)
+			writer.add_scalar(tag='score/SSIM', scalar_value=ssim, global_step=epoch)
+			writer.add_scalar(tag='score/SAM', scalar_value=sam, global_step=epoch)
+			writer.add_scalar(tag='score/MSE', scalar_value=mse, global_step=epoch)
 
 			save_path = checkpoint_path + 'epoch=%d_psnr=%.5f_ssim=%.5f'%(epoch, psnr,ssim)
 			visual(core.model, test_dataloader, img_num=3, save_path=save_path + '/', device=device)
 			core.save_ckpt(save_path +'ckpt.pt', dataset=args.dataset)
+			
 		pass
 	# save the final model
 	save_path = checkpoint_path + 'final_epoch=%d_psnr=%.5f_ssim=%.5f/'%(epoch, psnr,ssim)
