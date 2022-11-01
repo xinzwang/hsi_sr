@@ -6,7 +6,7 @@ from torch.utils.data.dataloader import DataLoader
 from datasets import *
 
 def SelectDatasetObject(name):
-	if name in ['Pavia', 'PaviaU', 'KSC', 'Indian', 'CAVE']:
+	if name in ['Pavia', 'PaviaU', 'Salinas', 'KSC', 'Indian', 'CAVE']:
 		return SingleDataset
 	elif name in ['ICVL']:
 		return MultiDataset

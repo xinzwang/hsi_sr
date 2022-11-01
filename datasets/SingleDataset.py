@@ -36,6 +36,11 @@ class SingleDataset(Dataset):
 
 	def __getitem__(self, index):
 		hr = self.hsi[index, ...]
+		
+		H, W, C = hr.shape
+		if (H % self.scale_factor !=0) or (W % self.scale_factor != 0):
+			hr = hr[0:H//self.scale_factor*self.scale_factor, 0:W//self.scale_factor*self.scale_factor, :]
+
 		# enhance
 		if not self.test_flag:
 			hr = rot90(hr)

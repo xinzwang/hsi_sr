@@ -14,10 +14,15 @@ class SRCore:
 	def __init__(self, batch_log=10):
 		self.parallel = False
 		self.batch_log = batch_log
+		self.batch_cnt = 0
+		self.epoch_cnt = 0
 		pass
 
 	def inject_logger(self, logger):
 		self.logger = logger
+
+	def inject_writer(self, writer):
+		self.writer = writer
 
 	def inject_device(self, device):
 		self.device=device
@@ -28,7 +33,6 @@ class SRCore:
 	def build_loss(self):
 		self.loss_fn = getattr(self.model.loss_name, )
 
-		
 	def inject_loss_fn(self, loss_fn):
 		self.loss_fn = loss_fn
 
@@ -53,15 +57,19 @@ class SRCore:
 
 	def train_single(self, dataloader):
 		logger = self.logger
+		writer = self.writer
 		device = self.device
 		model = self.model
 		loss_fn = self.loss_fn
 		optimizer = self.optimizer
 		scheduler = self.scheduler
 
+		self.epoch_cnt += 1
+
 		total_loss = []
 		c_lr = optimizer.state_dict()['param_groups'][0]['lr']
 		logger.info('  lr:%f'%(c_lr))
+		writer.add_scalar(tag='train/lr', scalar_value=c_lr, global_step=self.epoch_cnt)
 
 		for i, (lr, hr) in enumerate(tqdm(dataloader)):
 			lr = lr.to(device)
@@ -74,8 +82,10 @@ class SRCore:
 			optimizer.step()
 
 			total_loss.append(loss.item())
+			self.batch_cnt += 1
 			if i % self.batch_log == 1:
 				logger.info('  batch:%d loss:%.5f' % (i, loss.item()))
+				writer.add_scalar(tag='train/loss', scalar_value=loss.item(), global_step=self.batch_cnt)
 			pass
 		mean_loss = np.mean(total_loss)
 		scheduler.step(mean_loss)

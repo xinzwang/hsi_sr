@@ -9,7 +9,10 @@ def gen_panel_from_area(area, panel_size=64, stride=64, ratio=1):
 		area = cv2.resize(area, (0, 0), fx=ratio, fy=ratio, interpolation=cv2.INTER_CUBIC)
 
 	H, W, C = area.shape
-	assert panel_size<H and panel_size<W, Exception('Panelsize is too large')
+
+	if not(panel_size<H and panel_size<W):
+		return []
+		# Exception('Panelsize is too large')
 
 	P, Q = H // panel_size, W // panel_size
 	res = []
