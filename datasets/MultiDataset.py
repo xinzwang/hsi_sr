@@ -41,9 +41,8 @@ class MultiDataset(Dataset):
 
 		if self.test_flag:
 			hr = hr[0:512, 0:512, ...]
-
-		# enhance
-		if not self.test_flag:
+		else:
+			# enhance
 			hr = rot90(hr)
 			hr = flip(hr)
 			hr = np.ascontiguousarray(hr)

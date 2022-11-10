@@ -88,7 +88,7 @@ class SRCore:
 				writer.add_scalar(tag='train/loss', scalar_value=loss.item(), global_step=self.batch_cnt)
 			pass
 		mean_loss = np.mean(total_loss)
-		scheduler.step(mean_loss)
+		# scheduler.step(mean_loss)
 		return mean_loss
 
 	def train_parallel(self, dataloader):
@@ -127,4 +127,31 @@ class SRCore:
 			'model': self.model
 		}, save_path)
 		return
-		
+	
+	def load_ckpt(self, path):
+		ckpt = torch.load(path)
+		self.model = ckpt['model'].to(self.device)
+		return
+
+	def predict(self, dataloader):
+		device = self.device
+		model = self.model
+
+		err_channel = None
+
+		for i, (lr, hr) in enumerate(tqdm(dataloader)):
+			lr = lr.to(device)
+			hr = hr.to(device)
+
+			with torch.no_grad():
+				pred = model(lr)
+			# cal error
+			pred_ = pred.cpu().numpy()
+			hr_ = hr.cpu().numpy()
+			err_ = np.abs(pred_ - hr_)
+			err_c = np.mean(err_, axis=(2, 3))
+			if err_channel is None:
+				err_channel = err_c
+			else:
+				err_channel = np.concatenate((err_channel, err_c), axis=0)
+		return err_channel
