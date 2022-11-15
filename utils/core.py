@@ -7,12 +7,14 @@ from tqdm import tqdm
 
 import torch
 import torch.nn as nn
+import torch.optim as optim
 
 import models
 
+
 class SRCore:
 	def __init__(self, batch_log=10):
-		self.parallel = False
+		self.parallel_ = False
 		self.batch_log = batch_log
 		self.batch_cnt = 0
 		self.epoch_cnt = 0
@@ -43,13 +45,14 @@ class SRCore:
 		self.scheduler = scheduler
 	
 	def parallel(self, device_ids=['cuda:0']):
-		if self.parallel==False:
+		if self.parallel_==False:
+			self.parallel_ = True
 			self.model = nn.DataParallel(self.model, device_ids=device_ids)
-			self.optimizer = nn.DataParallel(self.optimizer, device_ids=args.device_ids)
-			self.scheduler = nn.DataParallel(self.scheduler, device_ids=args.device_ids)
+			self.optimizer = nn.DataParallel(self.optimizer, device_ids=device_ids)
+			self.scheduler = nn.DataParallel(self.scheduler, device_ids=device_ids)
 
 	def train(self, dataloader):
-		if self.parallel==True:
+		if self.parallel_==True:
 			mean_loss = self.train_parallel(dataloader)
 		else:
 			mean_loss = self.train_single(dataloader)
@@ -93,15 +96,19 @@ class SRCore:
 
 	def train_parallel(self, dataloader):
 		logger = self.logger
+		writer = self.writer
 		device = self.device
 		model = self.model
 		loss_fn = self.loss_fn
 		optimizer = self.optimizer
 		scheduler = self.scheduler
 
+		self.epoch_cnt += 1
+
 		total_loss = []
 		c_lr = optimizer.module.state_dict()['param_groups'][0]['lr']
 		logger.info('  lr:%f'%(c_lr))
+		writer.add_scalar(tag='train/lr', scalar_value=c_lr, global_step=self.epoch_cnt)
 
 		for i, (lr, hr) in enumerate(tqdm(dataloader)):
 			lr = lr.to(device)
@@ -114,11 +121,13 @@ class SRCore:
 			optimizer.module.step()
 
 			total_loss.append(loss.item())
+			self.batch_cnt += 1
 			if i % self.batch_log == 1:
 				logger.info('  batch:%d loss:%.5f' % (i, loss.item()))
+				writer.add_scalar(tag='train/loss', scalar_value=loss.item(), global_step=self.batch_cnt)
 			pass
 		mean_loss = np.mean(total_loss)
-		scheduler.module.step(mean_loss)
+		# scheduler.module.step(mean_loss)
 		return mean_loss
 
 	def save_ckpt(self, save_path, dataset):
@@ -155,3 +164,4 @@ class SRCore:
 			else:
 				err_channel = np.concatenate((err_channel, err_c), axis=0)
 		return err_channel
+

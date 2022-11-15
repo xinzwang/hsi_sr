@@ -10,6 +10,8 @@ import torch.optim as optim
 import torch.backends.cudnn as cudnn
 from torch.utils.tensorboard import SummaryWriter
 
+from models.loss import HybridLoss
+
 from utils.logger import create_logger
 from utils.dataset import build_dataset
 from utils.test import test, visual
@@ -18,25 +20,26 @@ from utils.core import SRCore
 
 def parse_args():
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--dataset', default='Pavia', choices=['ICVL', 'CAVE', 'Pavia', 'Salinas','PaviaU', 'KSC', 'Indian'])
+	parser.add_argument('--dataset', default='CAVE', choices=['ICVL', 'CAVE', 'Pavia', 'Salinas','PaviaU', 'KSC', 'Indian'])
 	parser.add_argument('--scale_factor', default=2, type=int)
 	parser.add_argument('--batch_size', default=16, type=int)
 	parser.add_argument('--epoch', default=10001)
 	parser.add_argument('--lr', default=1e-4, type=float, help='Learning Rate')
 	parser.add_argument('--seed', default=17, type=int)
-	parser.add_argument('--device', default='cuda:4')
-	parser.add_argument('--parallel', default=False)
-	parser.add_argument('--device_ids', default=['cuda:5', 'cuda:6', 'cuda:7'])
+	parser.add_argument('--device', default='cuda:2')
+	parser.add_argument('--parallel', default=False, type=bool)
+	parser.add_argument('--device_ids', default=['cuda:2', 'cuda:4', 'cuda:0', 'cuda:3'])
+	parser.add_argument('--loss', default='L1')
 	parser.add_argument('--model', default='SSPSR')
 	# Pavia
-	parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/Pavia/sr/train_x420_y230_N256.npy')
-	parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/Pavia/sr/test_x420_y230_N256.npy')
+	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/Pavia/sr/train_x420_y230_N256.npy')
+	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/Pavia/sr/test_x420_y230_N256.npy')
 	# Salinas
 	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/Salinas/train_x192_45_N128.npy')
 	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/Salinas/test_x192_45_N128.npy')
 	# CAVE
-	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/CAVE/train.npy')
-	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/CAVE/test.npy')
+	parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/CAVE/train.npy')
+	parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/CAVE/test.npy')
 	# ICVL
 	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/ICVL/train/')
 	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/ICVL/test/')
@@ -87,13 +90,18 @@ def train(args):
 	core.build_model(name=args.model, channels=dataset.channels, scale_factor=args.scale_factor)
 	
 	# loss optimizer
-	loss_fn = nn.L1Loss()
+	if args.loss == 'L1':
+		loss_fn = nn.L1Loss()
+	elif args.loss == 'Hybrid':
+		loss_fn = HybridLoss(spatial_tv=True, spectral_tv=True)	# This loss is refs to SSPSR
+	else:
+		raise Exception('Unknown loss type:'+args.loss)
+		
 	optimizer = optim.Adam(core.model.parameters(), args.lr)
 	scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2, patience=50, threshold=1e-4, min_lr=1e-5)
 	core.inject_loss_fn(loss_fn)
 	core.inject_optim(optimizer)
 	core.inject_scheduler(scheduler)
-
 
 	if args.parallel:
 		core.parallel(device_ids = args.device_ids)

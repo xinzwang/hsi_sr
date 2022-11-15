@@ -4,8 +4,12 @@ from .EDSR.edsr import EDSR
 from .MCNet.mcnet import MCNet
 from .SSPSR.sspsr import SSPSR
 
+from .BiQRNN3D.model import BiFQRNNREDC3D
+
 from .SwinIR.SwinIR import SwinIR
 
 from .CANet.v1 import CANetV1
 from .CANet.v2 import CANetV2
+from .CANet.v3 import CANetV3
 
+from .MemCS.model import MemCS

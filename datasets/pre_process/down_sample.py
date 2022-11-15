@@ -1,11 +1,24 @@
 import cv2
 import torch.nn as nn
+from scipy.ndimage.filters import gaussian_filter
 
 
 def down_sample(x, scale_factor=2, kernel_size=(9,9), sigma=3):
 	out = cv2.GaussianBlur(x, ksize=kernel_size, sigmaX=sigma,sigmaY=sigma)
+	# ksize=kernel_size[0]
+	# out = gaussian_filter(x, sigma=sigma, truncate=(((ksize - 1)/2)-0.5)/sigma)
 	out = cv2.resize(out, (0,0), fx=1/scale_factor, fy=1/scale_factor, interpolation=cv2.INTER_CUBIC)
 	return out
+
+class GaussianBlur(object):
+	def __init__(self, ksize=8, sigma=3):
+		self.sigma = sigma
+		self.truncate = (((ksize - 1)/2)-0.5)/sigma
+
+	def __call__(self, img):
+		img = gaussian_filter(img, sigma=self.sigma, truncate=self.truncate)
+		return img
+
 
 def down_sample_torch(x, ratio=0.5):
 	dim = x.dim()

@@ -14,8 +14,13 @@ import torch
 import glob
 from pathlib import Path
 from torch.utils.data import Dataset
-from .pre_process.down_sample import down_sample
-from .pre_process.enhance import *
+
+if __name__=='__main__':
+	from pre_process.down_sample import down_sample
+	from pre_process.enhance import *
+else:
+	from .pre_process.down_sample import down_sample
+	from .pre_process.enhance import *
 
 
 class MultiDataset(Dataset):
@@ -33,14 +38,17 @@ class MultiDataset(Dataset):
 
 	def __getitem__(self, index):
 		path = self.paths[index]
+		# print(path)
 		hr = np.load(path).astype(np.float32)	# HWC; [0, 1]; np.float32
 
 		H, W, C = hr.shape
-		if (H % self.scale_factor !=0)or (W % self.scale_factor != 0):
+		if (H % self.scale_factor !=0) or (W % self.scale_factor != 0):
 			hr = hr[0:H//self.scale_factor*self.scale_factor, 0:W//self.scale_factor*self.scale_factor, :]
 
 		if self.test_flag:
-			hr = hr[0:512, 0:512, ...]
+			center_H = H // 2
+			center_W = W // 2
+			hr = hr[center_H-256:center_H+256, center_W-256:center_W+256, ...]
 		else:
 			# enhance
 			hr = rot90(hr)
@@ -49,4 +57,21 @@ class MultiDataset(Dataset):
 		# down sample
 		lr = down_sample(hr, scale_factor=self.scale_factor, kernel_size=(9,9), sigma=3)
 
+		# cv2.imwrite('lr.png', np.mean(lr, axis=2)*255)
+		# cv2.imwrite('hr.png', np.mean(hr, axis=2)*255)
+
 		return lr.transpose(2,0,1), hr.transpose(2,0,1)
+
+	if __name__=='__main__':
+		data = np.load('/data2/wangxinzhe/codes/datasets/ICVL/test/selfie_0822-0906.npy')
+		print(data.dtype)
+		print(data.shape)
+		print(data.max())
+		print(data.min())
+
+		lr = down_sample(data, scale_factor=2, kernel_size=(9,9), sigma=3)
+
+		cv2.imwrite('lr.png', np.mean(lr, axis=2)*255)
+		cv2.imwrite('hr.png', np.mean(data, axis=2)*255)
+
+
