@@ -640,7 +640,8 @@ class SwinIR(nn.Module):
 				super(SwinIR, self).__init__()
 				num_in_ch = channels
 				num_out_ch = channels
-				num_feat = 64
+				# num_feat = 64
+				num_feat = 256
 				self.img_range = img_range
 				if channels == 3:
 						rgb_mean = (0.4488, 0.4371, 0.4040)

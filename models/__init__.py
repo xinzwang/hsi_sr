@@ -13,3 +13,6 @@ from .CANet.v2 import CANetV2
 from .CANet.v3 import CANetV3
 
 from .MemCS.model import MemCS
+from .MemCS.v2 import MemCSV2
+
+from .MCNet.v2 import MCNetV2
