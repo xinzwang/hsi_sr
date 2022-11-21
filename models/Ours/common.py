@@ -204,6 +204,25 @@ class DoubleConv2DFeatsDim(nn.Module):
 		return out.reshape(N, C, F, H, W).transpose(1, 2)
 
 
+class DoubleConv3DFeatsDim(nn.Module):
+	def __init__(self, channels, n_feats, act=nn.ReLU(inplace=True)):
+		super().__init__()
+		self.channels = channels
+		self.n_feats = n_feats
+		
+		self.conv = nn.Sequential(
+			nn.Conv3d(channels, channels, kernel_size=(3, 1, 1), stride=1, padding=(1,0,0)),
+			act,
+			nn.Conv3d(channels, channels, kernel_size=(3, 1, 1), stride=1, padding=(1,0,0)),
+		)
+
+	def forward(self, x):
+		# x: [N, F, C, H, W]
+		out = x.transpose(1, 2)	# [N, C, F, H, W]
+		out = self.conv(out)
+		return out.transpose(1, 2)
+
+
 class DoubleConv2DChannelDim(nn.Module):
 	"""从所有波段，特定的特征维度，提取空间、光谱维度信息。空间维度共享参数，光谱维度独立参数，特征维度共享参数"""
 	def __init__(self, channels, n_feats, act=nn.ReLU(inplace=True)):
