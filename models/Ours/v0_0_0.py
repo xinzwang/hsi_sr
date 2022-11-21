@@ -46,11 +46,11 @@ class Block(nn.Module):
 
 		self.layers = nn.Sequential(*layers)
 
-		# self.conv = nn.Conv3d(n_feats, n_feats, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
+		self.conv = nn.Conv3d(n_feats, n_feats, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
 		
 	def forward(self, x):
-		out = self.layers(x) + x
-		# out = self.conv(out) + x
+		out = self.layers(x)
+		out = self.conv(out) + x
 		return out
 
 
@@ -63,7 +63,7 @@ class OursV000(nn.Module):
 		kernel_size=3
 		reduction = 4
 
-		n_blocks = 3	# 6 is too small
+		n_blocks = 3
 		n_layers = 4
 
 		band_mean = band_means['CAVE']
