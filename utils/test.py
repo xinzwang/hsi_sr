@@ -18,7 +18,7 @@ def test(model, dataloader, device):
 	with torch.no_grad():
 		for i, (lr, hr) in enumerate(tqdm(dataloader)):
 			lr = lr.to(device)
-			
+
 			pred = model(lr)
 			assert len(pred)==1, Exception('Test batch_size should be 1, not:%d' %(len(pred)))
 			# torch->numpy; 1CHW->HWC; [0, 1]

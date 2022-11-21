@@ -15,4 +15,14 @@ from .CANet.v3 import CANetV3
 from .MemCS.model import MemCS
 from .MemCS.v2 import MemCSV2
 
+from .MCNet.v0 import MCNetV0
+from .MCNet.v0_1 import MCNetV0_1
+from .MCNet.v1 import MCNetV1
 from .MCNet.v2 import MCNetV2
+from .MCNet.v3 import MCNetV3
+from .MCNet.v4 import MCNetV4
+
+from .Ours.v0_1 import OursV01
+from .Ours.v0_2 import OursV02
+from .Ours.v1_1 import OursV11
+from .Ours.v1_2 import OursV12

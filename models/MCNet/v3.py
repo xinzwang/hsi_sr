@@ -66,7 +66,7 @@ class CALayer3DFeatsDim(nn.Module):
 		# x: [N, F, C, H, W]
 		out = x.transpose(1,2) # [N, C, F, H, W]
 		attn  = self.pool(out).reshape(-1, self.channels * self.n_feats)
-		attn = self.fc(attn).reshape(N, self.channels, self.n_feats).unsqueeze(-1).unsqueeze(-1)
+		attn = self.fc(attn).reshape(-1, self.channels, self.n_feats).unsqueeze(-1).unsqueeze(-1)
 		out = out * attn
 		out = out.transpose(1, 2)	# [N, F, C, H, W]
 		return out
@@ -89,9 +89,9 @@ class CALayer3DChannelDim(nn.Module):
 
 	def forward(self, x):
 		# x: [N, F, C, H, W]
-		attn  = self.pool(out).reshape(-1, self.channels * self.n_feats)	# [N, F*C]
-		attn = self.fc(attn).reshape(N, self.channels, self.n_feats).unsqueeze(-1).unsqueeze(-1)
-		out = out * attn
+		attn  = self.pool(x).reshape(-1, self.n_feats * self.channels )	# [N, F*C]
+		attn = self.fc(attn).reshape(-1, self.n_feats, self.channels).unsqueeze(-1).unsqueeze(-1)
+		out = x * attn
 		return out
 
 
@@ -151,9 +151,7 @@ class DoubleConv3DChannelDim(nn.Module):
 		)
 
 	def forward(self, x):
-		# x: [N, F, C, H, W]
-		N, F,C,H,W = x.shape
-		out = self.conv(out)
+		out = self.conv(x)
 		return out
 
 class DoubleConv3dFeatsDim(nn.Module):
@@ -166,48 +164,34 @@ class Block(nn.Module):
 		self.channels = channels
 		self.n_feats = n_feats
 
-		self.res_block = nn.Sequential(
-			wn(nn.Conv2d(n_feats, n_feats, kernel_size=(3, 3), stride=1, padding=(1,1))),
-			nn.ReLU(inplace=True),
-			wn(nn.Conv2d(n_feats, n_feats, kernel_size=(3, 3), stride=1, padding=(1,1))),
-		)
+		act = nn.ReLU(inplace=True)
 
-		self.ca_pool = nn.AdaptiveAvgPool2d((1, 1))
-		self.ca_fc = nn.Sequential(
-			nn.Linear(n_feats * channels, n_feats * channels // reduction),
-			nn.Linear(n_feats * channels // reduction, n_feats * channels),
-			nn.Sigmoid(),
-		)
+		# block1
+		self.layer1 = DoubleConv2DFeatsDim(channels, n_feats, act=act)
+		self.layer2 = CALayer3DFeatsDim(channels, n_feats, reduction=4, act=act)
 
-		self.tri_block = Block3D(wn, n_feats=n_feats)
-		
+		# block2
+		self.layer3 = DoubleConv3DChannelDim(channels, n_feats, act=act)
+		self.layer4 = CALayer3DChannelDim(channels, n_feats, reduction=4, act=act)
 		
 	def forward(self, x):
-		# N, C, F, H, W
-		N, C, F, H, W = x.shape
-		# 2d conv
-		x0 = x.reshape(N*C, F, H, W)	# [N*C, F, H, W]
-		out = self.res_block(x0) + x0
-		# channel attn
-		out = out.reshape(N, C, F, H, W)
-		attn = self.ca_pool(out)
-		attn = attn.reshape(N, C*F)
-		attn = self.ca_fc(attn).reshape(N, C, F).unsqueeze(-1).unsqueeze(-1)	# [N, C, F, 1, 1]
-		out = out * attn # [N, C, F, H, W]
-		# 3d conv
-		out = out.permute(0, 2, 1, 3, 4) # [N, F, C, H, W]
-		out = self.tri_block(out)
-		out = out.permute(0, 2, 1, 3, 4)	# [N, C, F, H, W] 
+		# block1
+		out = self.layer1(x)
+		T = self.layer2(out) + x
+
+		# block2
+		out = self.layer3(T)
+		out = self.layer4(out) + T
 
 		return out + x
 
 
 
-class MCNetV2(nn.Module):
+class MCNetV3(nn.Module):
 	def __init__(self, channels, scale_factor):
 		super().__init__()
 		
-		n_feats = 32
+		n_feats = 16
 		embed_chans = 3
 		kernel_size=3
 		reduction = 4
@@ -235,14 +219,12 @@ class MCNetV2(nn.Module):
 
 		# head
 		out = out.unsqueeze(1)
-		out_head = self.conv_head(out).permute(0, 2, 1, 3, 4)	# [N, F, C, H, W] -> [N, C, F, H, W]
+		out_head = self.conv_head(out)
 		
 		# blocks
 		out = out_head
 		for block in self.blocks:
 			out = block(out) + out_head
-
-		out = out.permute(0, 2, 1, 3, 4)	# [N, C, F, H, W] -> [N, F, C, H, W]
 
 		# tail
 		out = self.conv_tail(out)
@@ -250,9 +232,6 @@ class MCNetV2(nn.Module):
 
 		out = out + self.band_mean.to(x.device)
 		return out
-
-
-
 
 
 band_means = {

@@ -31,6 +31,9 @@ class SRCore:
 
 	def build_model(self, name, channels=3, scale_factor=2):
 		self.model = getattr(models, name)(channels, scale_factor).to(self.device)
+		total = sum([param.nelement() for param in self.model.parameters()])
+		print("Number of parameter: %.2fM" % (total/1e6))
+
 	
 	def build_loss(self):
 		self.loss_fn = getattr(self.model.loss_name, )
