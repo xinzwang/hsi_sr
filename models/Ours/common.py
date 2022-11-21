@@ -1,7 +1,7 @@
 """
 TODO: 给feat维度的channel-attention增加光谱维度embed编码
 """
-
+import math
 import torch
 import torch.nn as nn
 
@@ -11,6 +11,21 @@ band_means = {
 					0.0894, 0.0944, 0.0956, 0.0939, 0.1187, 0.0903, 0.0928, 0.0985, 0.1046, 0.1121, 0.1194, 
 					0.1240, 0.1256, 0.1259, 0.1272, 0.1291, 0.1300, 0.1352, 0.1428, 0.1541), #CAVE
 }
+
+def default_conv(in_channels, out_channels, kernel_size, bias=True, dilation=1):
+    if dilation==1:
+       return nn.Conv2d(
+           in_channels, out_channels, kernel_size,
+           padding=(kernel_size//2), bias=bias)
+    elif dilation==2:
+       return nn.Conv2d(
+           in_channels, out_channels, kernel_size,
+           padding=2, bias=bias, dilation=dilation)
+
+    else:
+       return nn.Conv2d(
+           in_channels, out_channels, kernel_size,
+           padding=3, bias=bias, dilation=dilation)
 
 
 class BasicConv3d(nn.Module):
@@ -232,8 +247,32 @@ class DoubleConv3dFeatsDim(nn.Module):
 	pass
 
 
+class Upsampler(nn.Sequential):
+    def __init__(self, conv, scale, n_feats, bn=False, act=False, bias=True):
+        m = []
+        if (scale & (scale - 1)) == 0:    # Is scale = 2^n?
+            for _ in range(int(math.log(scale, 2))):
+                m.append(conv(n_feats, 4 * n_feats, 3, bias))
+                m.append(nn.PixelShuffle(2))
+                if bn:
+                    m.append(nn.BatchNorm2d(n_feats))
+                if act == 'relu':
+                    m.append(nn.ReLU(True))
+                elif act == 'prelu':
+                    m.append(nn.PReLU(n_feats))
 
+        elif scale == 3:
+            m.append(conv(n_feats, 9 * n_feats, 3, bias))
+            m.append(nn.PixelShuffle(3))
+            if bn:
+                m.append(nn.BatchNorm2d(n_feats))
+            if act == 'relu':
+                m.append(nn.ReLU(True))
+            elif act == 'prelu':
+                m.append(nn.PReLU(n_feats))
+        else:
+            raise NotImplementedError
 
-
+        super(Upsampler, self).__init__(*m)
 
 

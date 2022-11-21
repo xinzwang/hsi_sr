@@ -58,13 +58,13 @@ class OursV02(nn.Module):
 	def __init__(self, channels, scale_factor):
 		super().__init__()
 		
-		n_feats = 16
+		n_feats = 64
 		embed_chans = 3
 		kernel_size=3
 		reduction = 4
 
-		n_blocks = 6	# 6 is too small
-		n_layers = 6
+		n_blocks = 3	# 6 is too small
+		n_layers = 4
 
 		band_mean = band_means['CAVE']
 

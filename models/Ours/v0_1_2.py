@@ -1,3 +1,4 @@
+import math
 import torch
 import torch.nn as nn
 
@@ -14,7 +15,6 @@ class Layer(nn.Module):
 
 		# block1
 		self.layer1 = DoubleConv2DFeatsDim(channels, n_feats, act=act)
-		self.layer2 = CALayer2DFeatsDim(channels, n_feats, reduction=reduction, act=act)
 		# self.layer2 = CALayer3DFeatsDimWithChannelEmbed(channels, n_feats, reduction=4, act=act)
 
 		# block2
@@ -23,11 +23,12 @@ class Layer(nn.Module):
 	
 	def forward(self, x):
 		# block1
-		out = self.layer1(x)
-		T = self.layer2(out) + x
+		out = self.layer1(x) + x
+		# T = self.layer2(out) + x
 
 		# block2
-		out = self.layer3(T) + T
+		out = self.layer3(out) + out
+		# out = self.layer4(out) + T
 
 		return out
 
@@ -54,51 +55,71 @@ class Block(nn.Module):
 		return out
 
 
-class OursV11(nn.Module):
+class OursV012(nn.Module):
 	def __init__(self, channels, scale_factor):
 		super().__init__()
 		
-		n_feats = 64
-		embed_chans = 3
+		
 		kernel_size=3
 		reduction = 4
 
-		n_blocks = 3	# 6 is too small
-		n_layers = 4
+		n_branch = 8
+		n_feats = 64
+		n_blocks = 6
+		n_layers = 6
 
+		embed_chans = math.ceil(channels / n_branch)	#  4
+		chan_padding = (n_branch * embed_chans - channels) 
+		self.chan_padding =  chan_padding
+		
 		band_mean = band_means['CAVE']
-
 		self.band_mean = torch.autograd.Variable(torch.FloatTensor(band_mean)).view([1, channels, 1, 1])
 
 		# head
-		self.conv_head = nn.Conv3d(1, n_feats, kernel_size=(embed_chans, kernel_size, kernel_size), padding=(embed_chans//2, kernel_size // 2, kernel_size // 2))
+		self.conv_head = nn.Conv3d(1, n_feats, 
+			kernel_size=(embed_chans, kernel_size, kernel_size),
+			stride=(embed_chans, 1, 1),
+			padding=(chan_padding, kernel_size // 2, kernel_size // 2))
 
 		# body
 		self.blocks = nn.ModuleList()
 		for i in range(n_blocks):
-			self.blocks.append(Block(channels, n_feats, reduction=reduction, n_layers=n_layers))
+			self.blocks.append(Block(n_branch, n_feats, reduction=reduction, n_layers=n_layers))
+
+		# up
+		self.up = Upsampler(default_conv, scale_factor, n_feats)
 
 		# tail
-		self.conv_tail = nn.Sequential(
-			nn.ConvTranspose3d(n_feats, n_feats, kernel_size=(3,2+scale_factor,2+scale_factor), stride=(1,scale_factor,scale_factor), padding=(1,1,1)),
-			nn.Conv3d(n_feats, 1, kernel_size, padding=kernel_size//2)
-		)
+		self.conv_tail = nn.Conv2d(n_feats, embed_chans, kernel_size, padding=kernel_size//2)
+			
+		# tail
+		# self.conv_tail = nn.Sequential(
+		# 	nn.Conv3d(n_feats, 1, kernel_size, padding=kernel_size//2)
+		# )
 
 	def forward(self, x):
 		out = x - self.band_mean.to(x.device)
+		out = out.unsqueeze(1)
 
 		# head
-		out = out.unsqueeze(1)
 		out_head = self.conv_head(out)
 
 		# blocks
 		out = out_head
 		for block in self.blocks:
 			out = block(out)
+		out = out + out_head
+
+		# up
+		N, F, G, H, W = out.shape
+		out = out.transpose(1, 2).reshape(N*G, F, H, W)
+		out = self.up(out)	# N*G, F, H, W
 
 		# tail
-		out = self.conv_tail(out)
-		out = out.squeeze(1)
+		out = self.conv_tail(out)	# N*G, B, H, W
+		_, B, H, W = out.shape
+		out = out.reshape(N, G, B, H, W).reshape(N, G*B, H, W)[:, self.chan_padding:, :, :]	# N, C, H, W
+
 
 		out = out + self.band_mean.to(x.device)
 		return out

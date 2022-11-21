@@ -14,7 +14,6 @@ class Layer(nn.Module):
 
 		# block1
 		self.layer1 = DoubleConv2DFeatsDim(channels, n_feats, act=act)
-		self.layer2 = CALayer2DFeatsDim(channels, n_feats, reduction=reduction, act=act)
 		# self.layer2 = CALayer3DFeatsDimWithChannelEmbed(channels, n_feats, reduction=4, act=act)
 
 		# block2
@@ -23,11 +22,12 @@ class Layer(nn.Module):
 	
 	def forward(self, x):
 		# block1
-		out = self.layer1(x)
-		T = self.layer2(out) + x
+		out = self.layer1(x) + x
+		# T = self.layer2(out) + x
 
 		# block2
-		out = self.layer3(T) + T
+		out = self.layer3(out) + out
+		# out = self.layer4(out) + T
 
 		return out
 
@@ -46,15 +46,15 @@ class Block(nn.Module):
 
 		self.layers = nn.Sequential(*layers)
 
-		self.conv = nn.Conv3d(n_feats, n_feats, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
+		# self.conv = nn.Conv3d(n_feats, n_feats, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
 		
 	def forward(self, x):
-		out = self.layers(x)
-		out = self.conv(out) + x
+		out = self.layers(x) + x
+		# out = self.conv(out) + x
 		return out
 
 
-class OursV11(nn.Module):
+class OursV011(nn.Module):
 	def __init__(self, channels, scale_factor):
 		super().__init__()
 		
@@ -86,9 +86,10 @@ class OursV11(nn.Module):
 
 	def forward(self, x):
 		out = x - self.band_mean.to(x.device)
+		out = out.unsqueeze(1)
 
 		# head
-		out = out.unsqueeze(1)
+		
 		out_head = self.conv_head(out)
 
 		# blocks
@@ -97,8 +98,8 @@ class OursV11(nn.Module):
 			out = block(out)
 
 		# tail
-		out = self.conv_tail(out)
-		out = out.squeeze(1)
+		out = self.conv_tail(out + out_head)
 
+		out = out.squeeze(1)
 		out = out + self.band_mean.to(x.device)
 		return out
