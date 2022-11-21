@@ -38,8 +38,8 @@ def parse_args():
 	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/Salinas/train_x192_45_N128.npy')
 	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/Salinas/test_x192_45_N128.npy')
 	# CAVE
-	parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/CAVE/train.npy')
-	parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/CAVE/test.npy')
+	parser.add_argument('--train_path', default='/home/wxz/codes/datasets/CAVE/train.npy')
+	parser.add_argument('--test_path', default='/home/wxz/codes/datasets/CAVE/test.npy')
 	# ICVL
 	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/ICVL/train/')
 	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/ICVL/test/')
