@@ -113,12 +113,12 @@ class CALayer2DFeatsDimWithChansPosEmbed(nn.Module):
 			act,
 		)
 
-		self.conv2 = nn.Sequential(
+		self.conv_2 = nn.Sequential(
 			nn.Conv2d(n_feats // reduction, n_feats, kernel_size=(1, 1), stride=(1, 1)),
 			nn.Sigmoid()
 		)
 
-		self.chan_pos_embed = nn.Parameter(torch.randn(channels, n_feats, 1, 1))	# [C, F, 1, 1]
+		self.chan_pos_embed = nn.Parameter(torch.randn(channels, n_feats//reduction, 1, 1))	# [C, F, 1, 1]
 
 	def forward(self, x):
 		# x: [N, F, C, H, W]
@@ -225,6 +225,7 @@ class DoubleConv3DFeatsDim(nn.Module):
 
 
 class DoubleConv2DChannelDim(nn.Module):
+	"""效果不好"""
 	"""从所有波段，特定的特征维度，提取空间、光谱维度信息。空间维度共享参数，光谱维度独立参数，特征维度共享参数"""
 	def __init__(self, channels, n_feats, act=nn.ReLU(inplace=True)):
 		super().__init__()

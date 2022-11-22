@@ -20,13 +20,13 @@ from models import BiFQRNNREDC3D
 
 def parse_args():
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--dataset', default='ICVL', choices=['ICVL', 'CAVE', 'Pavia', 'Salinas','PaviaU', 'KSC', 'Indian'])
+	parser.add_argument('--dataset', default='CAVE', choices=['ICVL', 'CAVE', 'Pavia', 'Salinas','PaviaU', 'KSC', 'Indian'])
 	parser.add_argument('--scale_factor', default=2, type=int)
 	parser.add_argument('--batch_size', default=16, type=int)
 	parser.add_argument('--epoch', default=10001)
 	parser.add_argument('--device', default='cuda:4')
 
-	parser.add_argument('--ckpt', default='/data2/wangxinzhe/codes/github.com/xinzwang.cn/hsi_sr/checkpoints/bi3dqrnn3d.pth')
+	parser.add_argument('--ckpt', default='/data2/wangxinzhe/codes/github.com/xinzwang.cn/hsi_sr/checkpoints/CAVE/OursV02/x2/epoch=1825_psnr=43.02208_ssim=0.99629ckpt.pt')
 	# Pavia
 	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/Pavia/sr/train_x420_y230_N256.npy')
 	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/Pavia/sr/test_x420_y230_N256.npy')
@@ -35,10 +35,10 @@ def parse_args():
 	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/Salinas/test_x192_45_N128.npy')
 	# CAVE
 	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/CAVE/train.npy')
-	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/CAVE/test.npy')
+	parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/CAVE/test.npy')
 	# ICVL
 	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/ICVL/train/')
-	parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/ICVL/test/')
+	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/ICVL/test/')
 
 	args = parser.parse_args()
 	print(args)
@@ -55,13 +55,14 @@ def run(args):
 		test_flag=True)
 
 	ckpt = torch.load(args.ckpt, map_location=device)
-	external_checkpoint = ckpt['net']
+	model = ckpt['model']
 
-	model = BiFQRNNREDC3D(channels=16, scale_factor=2).to(device)
-	model.load_state_dict(external_checkpoint)
+	# external_checkpoint = ckpt['model']
+	# model = BiFQRNNREDC3D(channels=16, scale_factor=2).to(device)
+	# model.load_state_dict(external_checkpoint)
 
 
-	print(test(model, test_dataloader, device))
+	test(model, test_dataloader, device)
 
 
 if __name__=='__main__':

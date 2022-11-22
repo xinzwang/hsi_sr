@@ -7,6 +7,7 @@ from thop import profile
 def parse_args():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--n_chans', default=31, type=int)
+	parser.add_argument('--scale_factor', default=2, type=int)
 	parser.add_argument('--model', default='SSPSR')
 
 	args = parser.parse_args()
@@ -14,11 +15,11 @@ def parse_args():
 	return args
 
 def run(args):
-	model = getattr(models, args.model)(channels=args.n_chans, scale_factor=2)
+	model = getattr(models, args.model)(channels=args.n_chans, scale_factor=args.scale_factor)
 	total = sum([param.nelement() for param in model.parameters()])
 	print("Number of parameter: %.2fM" % (total/1e6))
 
-	inputs = torch.randn(1, args.n_chans, 256, 256)
+	inputs = torch.randn(1, args.n_chans, 64, 64)
 
 	flops, params = profile(model,(inputs, ))
 

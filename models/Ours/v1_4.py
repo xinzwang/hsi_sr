@@ -13,7 +13,7 @@ class Layer(nn.Module):
 		act = nn.ReLU(inplace=True)
 
 		self.layer1 = DoubleConv2DFeatsDim(channels, n_feats, act=act)
-		self.layer2 = CALayer2DFeatsDimWithChannelEmbed(channels, n_feats, reduction=4, act=act)
+		self.layer2 = CALayer2DFeatsDimWithChansPosEmbed(channels, n_feats, reduction=4, act=act)
 
 	
 	def forward(self, x):
@@ -38,7 +38,7 @@ class Block(nn.Module):
 		self.conv = nn.Conv3d(n_feats, n_feats, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
 		
 	def forward(self, x):
-		out = self.layers(x) + x
+		out = self.layers(x)
 		out = self.conv(out) + x
 		return out
 

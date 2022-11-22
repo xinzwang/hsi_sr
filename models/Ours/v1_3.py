@@ -38,7 +38,7 @@ class Block(nn.Module):
 		self.conv = nn.Conv3d(n_feats, n_feats, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
 		
 	def forward(self, x):
-		out = self.layers(x) + x
+		out = self.layers(x)
 		out = self.conv(out) + x
 		return out
 

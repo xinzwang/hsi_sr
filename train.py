@@ -38,8 +38,8 @@ def parse_args():
 	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/Salinas/train_x192_45_N128.npy')
 	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/Salinas/test_x192_45_N128.npy')
 	# CAVE
-	parser.add_argument('--train_path', default='/home/wxz/codes/datasets/CAVE/train.npy')
-	parser.add_argument('--test_path', default='/home/wxz/codes/datasets/CAVE/test.npy')
+	parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/CAVE/train.npy')
+	parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/CAVE/test.npy')
 	# ICVL
 	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/ICVL/train/')
 	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/ICVL/test/')
@@ -112,12 +112,13 @@ def train(args):
 		logger.info('[TEST] epoch:%d mean_loss:%.5f'%(epoch, mean_loss))
 
 		if epoch % 5 == 0:
-			psnr, ssim, sam, mse = test(core.model, test_dataloader, device=device)
-			logger.info('[TEST] epoch:%d psnr:%.5f ssim:%.5f sam:%.5f mse:%.5f' %(epoch, psnr, ssim, sam, mse))
+			psnr, ssim, sam, mse, ergas = test(core.model, test_dataloader, device=device)
+			logger.info('[TEST] epoch:%d psnr:%.9f ssim:%.9f sam:%.5f mse:%.9f ergas:%.9f' %(epoch, psnr, ssim, sam, mse, ergas))
 			writer.add_scalar(tag='score/PSNR', scalar_value=psnr, global_step=epoch)
 			writer.add_scalar(tag='score/SSIM', scalar_value=ssim, global_step=epoch)
 			writer.add_scalar(tag='score/SAM', scalar_value=sam, global_step=epoch)
-			writer.add_scalar(tag='score/MSE', scalar_value=mse, global_step=epoch)
+			# writer.add_scalar(tag='score/MSE', scalar_value=mse, global_step=epoch)
+			writer.add_scalar(tag='score/ERGAS', scalar_value=ergas, global_step=epoch)
 
 			save_path = checkpoint_path + 'epoch=%d_psnr=%.5f_ssim=%.5f'%(epoch, psnr,ssim)
 			visual(core.model, test_dataloader, img_num=3, save_path=save_path + '/', device=device)

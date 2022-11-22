@@ -3,6 +3,7 @@ Test api
 """
 import os
 import cv2
+import time
 import numpy as np
 import imgvision as iv
 from tqdm import tqdm
@@ -13,13 +14,18 @@ from functools import partial
 import torch
 
 def test(model, dataloader, device):
-	psnr, ssim, sam, mse = [], [], [], []
+	psnr, ssim, sam, mse, ergas = [], [], [], [], []
+	run_time = 0
 	model.eval()
 	with torch.no_grad():
 		for i, (lr, hr) in enumerate(tqdm(dataloader)):
 			lr = lr.to(device)
 
+			start_time = time.time()
 			pred = model(lr)
+			end_time = time.time()
+			run_time += end_time-start_time
+
 			assert len(pred)==1, Exception('Test batch_size should be 1, not:%d' %(len(pred)))
 			# torch->numpy; 1CHW->HWC; [0, 1]
 			hr_ = hr.cpu().numpy()[0].transpose(1,2,0)
@@ -28,14 +34,16 @@ def test(model, dataloader, device):
 			# psnr_, ssim_, sam_ = MSIQA(hr, pred)
 			# mse_ = 0
 			metric = iv.spectra_metric(pred_, hr_, max_v=1.0)
-			psnr_, ssim_, sam_, mse_ = metric.PSNR(), metric.SSIM(), metric.SAM(), metric.MSE()
+			psnr_, ssim_, sam_, mse_, ergas_ = metric.PSNR(), metric.SSIM(), metric.SAM(), metric.MSE(), metric.ERGAS()
 			psnr.append(psnr_)
 			ssim.append(ssim_)
 			sam.append(sam_)
 			mse.append(mse_)
-	psnr, ssim, sam, mse = np.mean(psnr),np.mean(ssim),np.mean(sam),np.mean(mse)
-	print('[TEST] psnr:%.5f ssim:%.5f sam:%.5f mse:%.5f' %(psnr, ssim, sam, mse))
-	return psnr, ssim, sam, mse
+			ergas.append(ergas_)
+	print('[TEST] runtime:%.5f'%(run_time))
+	psnr, ssim, sam, mse, ergas = np.mean(psnr),np.mean(ssim),np.mean(sam),np.mean(mse), np.mean(ergas)
+	print('[TEST] psnr:%.7f ssim:%.7f sam:%.7f mse:%.7f ergas:%.7f' %(psnr, ssim, sam, mse, ergas))
+	return psnr, ssim, sam, mse, ergas
 
 def visual(model, dataloader, img_num=3, save_path='img/', err_gain=10, device=None):
 	# create save dir
