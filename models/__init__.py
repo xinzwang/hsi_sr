@@ -24,9 +24,16 @@ from .MCNet.v4 import MCNetV4
 
 
 from .Ours.v0_0_0 import OursV000
+from .Ours.v0_0_0_0 import OursV0000
+from .Ours.v0_0_0_1 import OursV0001
+
 from .Ours.v0_1 import OursV01
 from .Ours.v0_1_1 import OursV011
 from .Ours.v0_1_2 import OursV012
 from .Ours.v0_2 import OursV02
 from .Ours.v1_1 import OursV11
 from .Ours.v1_2 import OursV12
+from .Ours.v1_3 import OursV13
+from .Ours.v1_4 import OursV13
+
+from .Ours.v2_1 import OursV21

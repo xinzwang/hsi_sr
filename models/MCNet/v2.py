@@ -197,7 +197,7 @@ class Block(nn.Module):
 		# 3d conv
 		out = out.permute(0, 2, 1, 3, 4) # [N, F, C, H, W]
 		out = self.tri_block(out)
-		out = out.permute(0, 2, 1, 3, 4)	# [N, C, F, H, W] 
+		out = out.permute(0, 2, 1, 3, 4)	# [N, C, F, H, W]
 
 		return out + x
 

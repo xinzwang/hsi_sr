@@ -631,7 +631,7 @@ class SwinIR(nn.Module):
 		"""
 
 		def __init__(self, channels=3, scale_factor=2, img_size=64, patch_size=1, 
-								 embed_dim=96, depths=[6, 6, 6, 6], num_heads=[6, 6, 6, 6],
+								 embed_dim=96, depths=[6, 6, 6, 6, 6, 6], num_heads=[6, 6, 6, 6, 6, 6],
 								 window_size=8, mlp_ratio=4., qkv_bias=True, qk_scale=None,
 								 drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
 								 norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
@@ -640,8 +640,8 @@ class SwinIR(nn.Module):
 				super(SwinIR, self).__init__()
 				num_in_ch = channels
 				num_out_ch = channels
-				# num_feat = 64
-				num_feat = 256
+				num_feat = 96
+				# num_feat = 256
 				self.img_range = img_range
 				if channels == 3:
 						rgb_mean = (0.4488, 0.4371, 0.4040)
@@ -724,7 +724,6 @@ class SwinIR(nn.Module):
 												 img_size=img_size,
 												 patch_size=patch_size,
 												 resi_connection=resi_connection
-
 												 )
 						self.layers.append(layer)
 				self.norm = norm_layer(self.num_features)
